@@ -20,10 +20,11 @@ const config = {
         timeout: parseInt(process.env.XAI_TIMEOUT, 10) || 120000,
         retries: parseInt(process.env.XAI_RETRIES, 10) || 3,
         models: {
-            chat: process.env.XAI_CHAT_MODEL || 'grok-4-0709',
+            chat: process.env.XAI_CHAT_MODEL || 'grok-4.3',
             vision: process.env.XAI_VISION_MODEL || 'grok-vision-beta',
             image: process.env.XAI_IMAGE_MODEL || 'grok-2-image'
-        }
+        },
+        reasoningEffort: process.env.XAI_REASONING_EFFORT || 'low'
     },
 
     // Database Configuration

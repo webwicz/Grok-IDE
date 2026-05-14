@@ -57,12 +57,25 @@ class DatabaseService {
             )
         `;
 
+        const createResponseIdsTable = `
+            CREATE TABLE IF NOT EXISTS response_ids (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                response_id TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(session_id)
+            )
+        `;
+
         try {
             await this.run(createSessionsTable);
             logger.info('Chat sessions table ready');
 
             await this.run(createMessagesTable);
             logger.info('Chat messages table ready');
+
+            await this.run(createResponseIdsTable);
+            logger.info('Response IDs table ready');
         } catch (error) {
             logger.error('Failed to initialize tables', { error: error.message });
             throw error;
@@ -118,33 +131,40 @@ class DatabaseService {
     }
 
     /**
-     * Get all chat sessions
+     * Get the last response ID for a session
      */
-    async getChatSessions(limit = 50) {
+    async getLastResponseId(sessionId) {
         const query = `
-            SELECT
-                cs.id,
-                cs.created_at,
-                cs.updated_at,
-                COUNT(cm.id) as message_count,
-                (SELECT cm2.user_message
-                 FROM chat_messages cm2
-                 WHERE cm2.session_id = cs.id
-                 ORDER BY cm2.created_at ASC
-                 LIMIT 1) as first_message
-            FROM chat_sessions cs
-            LEFT JOIN chat_messages cm ON cs.id = cm.session_id
-            GROUP BY cs.id
-            ORDER BY cs.updated_at DESC
-            LIMIT ?
+            SELECT response_id
+            FROM response_ids
+            WHERE session_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
         `;
 
         try {
-            const sessions = await this.all(query, [limit]);
-            return sessions;
+            const row = await this.get(query, [sessionId]);
+            return row ? row.response_id : null;
         } catch (error) {
-            logger.error('Failed to fetch chat sessions', { error: error.message });
-            throw error;
+            logger.error('Failed to get last response ID', { sessionId, error: error.message });
+            return null;
+        }
+    }
+
+    /**
+     * Set the last response ID for a session
+     */
+    async setLastResponseId(sessionId, responseId) {
+        const query = `
+            INSERT OR REPLACE INTO response_ids (session_id, response_id, created_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+        `;
+
+        try {
+            await this.run(query, [sessionId, responseId]);
+            logger.debug('Updated last response ID', { sessionId, responseId });
+        } catch (error) {
+            logger.error('Failed to set last response ID', { sessionId, responseId, error: error.message });
         }
     }
 

@@ -12,12 +12,7 @@
             this.isStreaming = false;
             this.abortController = null;
             this.conversationHistory = [];
-        }
-
-        /**
-         * Initialize AI streaming
-         */
-        initialize() {
+        this.sessionId = this._generateSessionId();
             this.setupModeButtons();
             this.setupSendButton();
             this.setupInputHandlers();
@@ -49,16 +44,38 @@
         }
 
         /**
-         * Setup input handlers
+         * Show thinking indicator
          */
-        setupInputHandlers() {
-            const input = document.getElementById('ai-input');
-            input?.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.key === 'Enter') {
-                    e.preventDefault();
-                    this.sendMessage();
-                }
-            });
+        showThinking() {
+            const aiContent = document.getElementById('ai-content');
+            if (!aiContent) return;
+
+            // Remove any existing thinking indicator
+            this.hideThinking();
+
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'ai-thinking';
+            thinkingDiv.id = 'thinking-indicator';
+            thinkingDiv.innerHTML = `
+                <div class="thinking-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+
+            aiContent.appendChild(thinkingDiv);
+            aiContent.scrollTop = aiContent.scrollHeight;
+        }
+
+        /**
+         * Hide thinking indicator
+         */
+        hideThinking() {
+            const thinkingDiv = document.getElementById('thinking-indicator');
+            if (thinkingDiv) {
+                thinkingDiv.remove();
+            }
         }
 
         /**
@@ -87,27 +104,31 @@
 
             if (!message || this.isStreaming) return;
 
-            // Get context
-            const includeCurrentFile = document.getElementById('include-current-file')?.checked;
-            const includeSelection = document.getElementById('include-selection')?.checked;
-
+            // Get context from attachments
             let context = '';
-            if (includeCurrentFile && window.monacoEditor) {
-                if (includeSelection) {
-                    context = window.monacoEditor.getSelectedText();
-                } else {
-                    context = window.monacoEditor.getValue();
+            if (window.contextAttachments) {
+                const attachments = window.contextAttachments.getContext();
+                if (attachments.length > 0) {
+                    context = attachments.map(att => 
+                        `--- ${att.type.toUpperCase()}: ${att.name} ---\n${att.content}`
+                    ).join('\n\n');
                 }
             }
 
-            // Clear input
+            // Clear input and attachments
             input.value = '';
+            if (window.contextAttachments) {
+                window.contextAttachments.clear();
+            }
 
             // Add user message to chat
             this.addMessage('user', message);
 
             // Show AI status
             this.updateAIStatus('Thinking...');
+
+            // Show thinking indicator
+            this.showThinking();
 
             // Start streaming
             try {
@@ -126,7 +147,8 @@
             this.isStreaming = true;
             this.abortController = new AbortController();
 
-            const model = document.getElementById('ai-model-select')?.value || 'grok-beta';
+            const model = document.getElementById('ai-model-select')?.value || 'grok-4.3';
+            const reasoningEffort = document.getElementById('reasoningEffort')?.value || 'low';
 
             // Create message container for streaming
             const messageDiv = this.createStreamingMessage();
@@ -142,6 +164,8 @@
                         context,
                         mode: this.currentMode,
                         model,
+                        reasoningEffort,
+                        sessionId: this.sessionId,
                         conversationHistory: this.conversationHistory.slice(-10) // Last 10 messages
                     }),
                     signal: this.abortController.signal
@@ -154,6 +178,7 @@
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let fullResponse = '';
+                let reasoningContent = '';
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -171,7 +196,11 @@
                                 const parsed = JSON.parse(data);
                                 if (parsed.content) {
                                     fullResponse += parsed.content;
-                                    this.updateStreamingMessage(messageDiv, fullResponse);
+                                    this.hideThinking(); // Hide thinking indicator on first content
+                                    this.updateStreamingMessage(messageDiv, fullResponse, reasoningContent);
+                                } else if (parsed.type === 'reasoning') {
+                                    reasoningContent += parsed.content;
+                                    this.updateStreamingMessage(messageDiv, fullResponse, reasoningContent);
                                 }
                             } catch (e) {
                                 // Ignore parse errors
@@ -276,10 +305,26 @@
         /**
          * Update streaming message
          */
-        updateStreamingMessage(messageDiv, content) {
+        updateStreamingMessage(messageDiv, content, reasoning = '') {
             const contentDiv = messageDiv.querySelector('.message-content');
             if (contentDiv) {
-                contentDiv.innerHTML = this.formatMessage(content);
+                let html = '';
+
+                // Add reasoning block if present
+                if (reasoning) {
+                    html += `
+                        <div class="ai-reasoning-block collapsed">
+                            <div class="reasoning-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                                <span class="reasoning-toggle">▶</span>
+                                <span class="reasoning-label">Reasoning</span>
+                            </div>
+                            <div class="reasoning-content">${this.formatMessage(reasoning)}</div>
+                        </div>
+                    `;
+                }
+
+                html += this.formatMessage(content);
+                contentDiv.innerHTML = html;
             }
 
             const aiContent = document.getElementById('ai-content');
@@ -329,9 +374,35 @@
             // Simple markdown-like formatting
             let formatted = content;
 
-            // Code blocks
-            formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-                return `<pre><code class="language-${lang || 'plaintext'}">${this.escapeHtml(code)}</code></pre>`;
+            // Enhanced code blocks with action buttons
+            formatted = formatted.replace(/```(\w+)?(?:\s+([^\n]+))?\n([\s\S]*?)```/g, (match, lang, filepath, code) => {
+                const language = lang || 'plaintext';
+                const filename = filepath || '';
+                const escapedCode = this.escapeHtml(code);
+
+                return `
+                    <div class="code-block-wrapper">
+                        <div class="code-block-header">
+                            <span class="code-language">${language}</span>
+                            ${filename ? `<span class="code-filename">${filename}</span>` : ''}
+                            <div class="code-block-actions">
+                                <button class="code-action-btn" onclick="window.aiStreaming.copyCode(this)" title="Copy code">
+                                    📋
+                                </button>
+                                <button class="code-action-btn" onclick="window.aiStreaming.applyToEditor(this)" title="Apply to editor">
+                                    ↓
+                                </button>
+                                ${filename ? `<button class="code-action-btn" onclick="window.aiStreaming.viewDiff(this)" title="View diff">
+                                    🔍
+                                </button>` : ''}
+                                <button class="code-action-btn" onclick="window.aiStreaming.createFile(this)" title="Create file">
+                                    📄
+                                </button>
+                            </div>
+                        </div>
+                        <pre><code class="language-${language}" data-filename="${filename}">${escapedCode}</code></pre>
+                    </div>
+                `;
             });
 
             // Inline code
@@ -347,12 +418,115 @@
         }
 
         /**
-         * Escape HTML
+         * Copy code from code block
          */
-        escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        copyCode(button) {
+            const codeBlock = button.closest('.code-block-wrapper').querySelector('code');
+            const code = codeBlock.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                this.showNotification('Code copied to clipboard', 'success');
+            });
+        }
+
+        /**
+         * Apply code to editor
+         */
+        applyToEditor(button) {
+            const codeBlock = button.closest('.code-block-wrapper').querySelector('code');
+            const code = codeBlock.textContent;
+            if (window.monacoEditor) {
+                window.monacoEditor.setValue(code);
+                this.showNotification('Code applied to editor', 'success');
+            }
+        }
+
+        /**
+         * View diff of code block
+         */
+        viewDiff(button) {
+            const codeBlock = button.closest('.code-block-wrapper').querySelector('code');
+            const filename = codeBlock.dataset.filename;
+            const newCode = codeBlock.textContent;
+
+            if (window.monacoEditor && filename) {
+                // This will be implemented in Phase 2
+                this.showNotification('Diff view will be implemented in Phase 2', 'info');
+            }
+        }
+
+        /**
+         * Create file from code block
+         */
+        createFile(button) {
+            const codeBlock = button.closest('.code-block-wrapper').querySelector('code');
+            const filename = codeBlock.dataset.filename;
+            const code = codeBlock.textContent;
+
+            if (filename) {
+                // This would require backend implementation
+                this.showNotification('File creation requires backend implementation', 'info');
+            }
+        }
+
+        /**
+         * Show notification
+         */
+        showNotification(message, type = 'info') {
+            // Use existing notification system if available
+            if (window.showNotification) {
+                window.showNotification(message, type);
+            } else {
+                console.log(`${type}: ${message}`);
+            }
+        }
+
+        /**
+         * Add confirmation message
+         */
+        addConfirmationMessage(question, onAccept, onReject) {
+            const aiContent = document.getElementById('ai-content');
+            if (!aiContent) return;
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message assistant confirmation';
+
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'message-header';
+            headerDiv.innerHTML = `
+                <strong>🤖 Grok AI</strong>
+                <span class="text-xs text-tertiary">Confirmation Required</span>
+            `;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = `
+                <div class="ai-confirmation">
+                    <p>${question}</p>
+                    <div class="confirmation-buttons">
+                        <button class="confirm-btn" onclick="this.closest('.ai-confirmation').dataset.accepted='true'">Accept</button>
+                        <button class="reject-btn" onclick="this.closest('.ai-confirmation').dataset.accepted='false'">Reject</button>
+                    </div>
+                </div>
+            `;
+
+            messageDiv.appendChild(headerDiv);
+            messageDiv.appendChild(contentDiv);
+            aiContent.appendChild(messageDiv);
+            aiContent.scrollTop = aiContent.scrollHeight;
+
+            // Wait for user response
+            const confirmationDiv = contentDiv.querySelector('.ai-confirmation');
+            const checkResponse = () => {
+                const accepted = confirmationDiv.dataset.accepted;
+                if (accepted === 'true') {
+                    onAccept();
+                } else if (accepted === 'false') {
+                    onReject();
+                } else {
+                    setTimeout(checkResponse, 100);
+                }
+            };
+            checkResponse();
         }
 
         /**

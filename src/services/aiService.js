@@ -42,9 +42,9 @@ const grokClient = createGrokClient();
 
 class AIService {
     /**
-     * Chat completion with streaming support
+     * Chat completion with streaming support using Responses API
      */
-    static async createCompletion({ messages, temperature, maxTokens, stream = true }) {
+    static async createCompletion({ messages, temperature, maxTokens, stream = true, reasoningEffort = null }) {
         if (!grokClient) {
             throw new APIError('AI service not configured', 503);
         }
@@ -54,7 +54,8 @@ class AIService {
                 messageCount: messages.length,
                 temperature,
                 maxTokens,
-                stream
+                stream,
+                reasoningEffort
             });
 
             const startTime = Date.now();
@@ -79,16 +80,21 @@ class AIService {
 
             const requestConfig = {
                 model: hasImages ? config.xai.models.vision : config.xai.models.chat,
-                messages: messages,
+                input: messages, // Changed from messages to input
                 temperature: temperature || config.ai.defaultTemperature,
                 max_tokens: adjustedMaxTokens,
                 stream: stream && config.ai.streamingEnabled
             };
 
+            // Add reasoning_effort if specified
+            if (reasoningEffort) {
+                requestConfig.reasoning_effort = reasoningEffort;
+            }
+
             if (stream && config.ai.streamingEnabled) {
                 return await this._handleStreamingResponse(requestConfig);
             } else {
-                const response = await grokClient.post('/chat/completions', requestConfig);
+                const response = await grokClient.post('/responses', requestConfig); // Changed endpoint
                 const duration = Date.now() - startTime;
                 logger.info('AI completion successful', { duration, model: requestConfig.model });
                 return response.data;
@@ -108,7 +114,7 @@ class AIService {
      */
     static async _handleStreamingResponse(requestConfig) {
         try {
-            const response = await grokClient.post('/chat/completions', requestConfig, {
+            const response = await grokClient.post('/responses', requestConfig, { // Changed endpoint
                 responseType: 'stream'
             });
 
@@ -120,7 +126,7 @@ class AIService {
 
             // Fallback to non-streaming
             const fallbackConfig = { ...requestConfig, stream: false };
-            const response = await grokClient.post('/chat/completions', fallbackConfig);
+            const response = await grokClient.post('/responses', fallbackConfig); // Changed endpoint
             return response.data;
         }
     }
@@ -128,21 +134,33 @@ class AIService {
     /**
      * Stream completion with callback for Phase 3
      */
-    static async streamCompletion(messages, model, onChunk) {
+    static async streamCompletion(messages, model, onChunk, reasoningEffort = null, previousResponseId = null) {
         if (!grokClient) {
             throw new APIError('AI service not configured', 503);
         }
 
         try {
-            logger.info('Starting streaming completion', { messageCount: messages.length });
+            logger.info('Starting streaming completion', { messageCount: messages.length, previousResponseId });
 
-            const response = await grokClient.post('/chat/completions', {
+            const requestConfig = {
                 model: model || config.xai.models.chat,
-                messages: messages,
+                input: messages, // Changed from messages to input
                 temperature: config.ai.defaultTemperature,
                 max_tokens: config.ai.defaultMaxTokens,
                 stream: true
-            }, {
+            };
+
+            // Add reasoning_effort if specified
+            if (reasoningEffort) {
+                requestConfig.reasoning_effort = reasoningEffort;
+            }
+
+            // Add previous_response_id for chaining
+            if (previousResponseId) {
+                requestConfig.previous_response_id = previousResponseId;
+            }
+
+            const response = await grokClient.post('/responses', requestConfig, { // Changed endpoint
                 responseType: 'stream'
             });
 
@@ -159,11 +177,18 @@ class AIService {
 
                             try {
                                 const parsed = JSON.parse(data);
-                                const content = parsed.choices?.[0]?.delta?.content;
+                                // Handle new Responses API format
+                                const content = parsed.output?.[0]?.content?.[0]?.text;
+                                const reasoningContent = parsed.output?.[0]?.content?.[0]?.reasoning_content;
+                                const responseId = parsed.id; // Capture response ID for chaining
 
                                 if (content) {
                                     fullResponse += content;
-                                    onChunk(content);
+                                    onChunk({ type: 'content', content, responseId });
+                                }
+
+                                if (reasoningContent) {
+                                    onChunk({ type: 'reasoning', content: reasoningContent, responseId });
                                 }
                             } catch (e) {
                                 // Ignore parse errors for streaming chunks
