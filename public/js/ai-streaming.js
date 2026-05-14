@@ -104,7 +104,8 @@
          * Send message to AI
          */
         async sendMessage() {
-            const input = document.getElementById('aiPrompt');
+            const input = document.getElementById('ai-input') || document.getElementById('aiPrompt');
+            if (!input) return;
             const message = input.value.trim();
 
             if (!message || this.isStreaming) return;
