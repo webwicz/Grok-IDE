@@ -1,23 +1,42 @@
 const AIService = require('../services/aiService');
 const logger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorHandler');
+const ToolService = require('../services/toolService');
+const memoryService = require('../services/memoryService');
+
+// Store last response IDs per session
+const sessionResponseIds = new Map();
+// Store pending tool confirmations
+const pendingToolCalls = new Map();
 
 /**
  * AI Completion endpoint
  */
 const createCompletion = asyncHandler(async (req, res) => {
-    const { messages, temperature, max_tokens, stream } = req.body;
+    const { messages, temperature, max_tokens, stream, sessionId, reasoningEffort } = req.body;
 
     logger.info('AI completion request received', {
         messageCount: messages.length,
-        stream
+        stream,
+        sessionId
     });
 
+    const previousResponseId = sessionId ? sessionResponseIds.get(sessionId) : null;
+
+    // Get memory context
+    const memoryContext = await memoryService.getSystemContext();
+    const inputWithMemory = memoryContext ? [{
+        role: 'system',
+        content: memoryContext
+    }, ...messages] : messages;
+
     const result = await AIService.createCompletion({
-        messages,
+        messages: inputWithMemory,
         temperature,
         maxTokens: max_tokens,
-        stream
+        stream,
+        reasoningEffort,
+        previousResponseId
     });
 
     // Handle streaming response
@@ -40,7 +59,7 @@ const createCompletion = asyncHandler(async (req, res) => {
             }
         }, 30000);
 
-        result.data.on('data', (chunk) => {
+        result.data.on('data', async (chunk) => {
             if (streamEnded) return;
 
             buffer += chunk.toString();
@@ -60,7 +79,43 @@ const createCompletion = asyncHandler(async (req, res) => {
                     }
                     try {
                         const parsed = JSON.parse(data);
-                        res.write(`data: ${JSON.stringify(parsed)}\n\n`);
+                        // Handle reasoning content
+                        if (parsed.reasoning_content) {
+                            res.write(`data: {"type":"reasoning","content":"${parsed.reasoning_content.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"}\n\n`);
+                        }
+                        // Handle regular content
+                        if (parsed.content) {
+                            res.write(`data: ${JSON.stringify({ content: parsed.content })}\n\n`);
+                        }
+                        // Handle tool calls
+                        if (parsed.tool_calls) {
+                            for (const toolCall of parsed.tool_calls) {
+                                if (toolCall.type === 'function') {
+                                    const { name, arguments: args } = toolCall.function;
+                                    if (['run_command', 'write_file'].includes(name)) {
+                                        // Requires confirmation
+                                        const callId = `${sessionId}_${Date.now()}`;
+                                        pendingToolCalls.set(callId, { name, args, toolCall });
+                                        res.write(`data: ${JSON.stringify({ type: 'tool_confirm', name, args, callId })}\n\n`);
+                                    } else {
+                                        // Execute immediately
+                                        try {
+                                            const result = await ToolService.executeTool(name, JSON.parse(args));
+                                            res.write(`data: ${JSON.stringify({ type: 'tool_result', name, result })}\n\n`);
+                                        } catch (error) {
+                                            res.write(`data: ${JSON.stringify({ type: 'tool_result', name, error: error.message })}\n\n`);
+                                        }
+                                    }
+                                } else {
+                                    // Built-in tool
+                                    res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: toolCall.type })}\n\n`);
+                                }
+                            }
+                        }
+                        // Store response ID if available
+                        if (parsed.response && parsed.response.id && sessionId) {
+                            sessionResponseIds.set(sessionId, parsed.response.id);
+                        }
                     } catch (e) {
                         logger.error('Failed to parse streaming chunk', { error: e.message });
                     }
@@ -87,6 +142,9 @@ const createCompletion = asyncHandler(async (req, res) => {
         });
     } else {
         // Non-streaming response
+        if (result.response && result.response.id && sessionId) {
+            sessionResponseIds.set(sessionId, result.response.id);
+        }
         res.json(result);
     }
 });

@@ -32,6 +32,12 @@ const config = {
         path: process.env.MEMORY_PATH || path.join(process.env.HOME || process.env.USERPROFILE, '.grok-ide', 'memory')
     },
 
+    // Database Configuration
+    database: {
+        filename: process.env.DB_PATH || path.join(process.env.HOME || process.env.USERPROFILE, '.grok-ide', 'grok-ide.db'),
+        verbose: process.env.DB_VERBOSE === 'true'
+    },
+
     // Security Configuration
     security: {
         corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['*'],
