@@ -89,9 +89,9 @@ const corsOptions = {
  */
 const securityHeaders = () => {
     return helmet({
-        contentSecurityPolicy: config.server.isProduction ? {
+        contentSecurityPolicy: {
             directives: config.security.csp.directives
-        } : false,
+        },
         hsts: {
             maxAge: 31536000,
             includeSubDomains: true,

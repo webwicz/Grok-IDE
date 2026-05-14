@@ -107,6 +107,11 @@ app.get('/v3', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'GrokIDE-v3.html'));
 });
 
+// Root route - serve main IDE
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'GrokIDE.html'));
+});
+
 // Phase 2 route
 app.get('/v2', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'GrokIDE-v2.html'));
