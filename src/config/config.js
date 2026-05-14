@@ -27,10 +27,9 @@ const config = {
         reasoningEffort: process.env.XAI_REASONING_EFFORT || 'low'
     },
 
-    // Database Configuration
-    database: {
-        filename: process.env.DB_FILENAME || './grok_ide_chat_history.db',
-        verbose: process.env.DB_VERBOSE === 'true'
+    // Memory Configuration
+    memory: {
+        path: process.env.MEMORY_PATH || path.join(process.env.HOME || process.env.USERPROFILE, '.grok-ide', 'memory')
     },
 
     // Security Configuration
@@ -41,15 +40,15 @@ const config = {
         maxRequestSize: process.env.MAX_REQUEST_SIZE || '50mb',
         csp: {
             directives: {
-                defaultSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-                imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
-                connectSrc: ["'self'", 'https://api.x.ai'],
-                fontSrc: ["'self'", 'data:'],
-                objectSrc: ["'none'"],
-                mediaSrc: ["'self'"],
-                frameSrc: ["'none'"]
+                "default-src": ["'self'"],
+                "style-src": ["'self'", "'unsafe-inline'"],
+                "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+                "img-src": ["'self'", 'data:', 'https:', 'blob:'],
+                "connect-src": ["'self'", 'https://api.x.ai'],
+                "font-src": ["'self'", 'data:'],
+                "object-src": ["'none'"],
+                "media-src": ["'self'"],
+                "frame-src": ["'none'"]
             }
         }
     },
