@@ -492,6 +492,347 @@
             color: #000000;
         }
 
+        .attach-btn {
+            padding: 0.5rem;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 4px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+        }
+
+        .attach-btn:hover {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .attachment-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            min-height: 24px;
+        }
+
+        .attachment-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background-color: #333333;
+            border: 1px solid #ffffff;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: #ffffff;
+        }
+
+        .pill-remove {
+            cursor: pointer;
+            color: #ff6666;
+            font-weight: bold;
+        }
+
+        .pill-remove:hover {
+            color: #ff0000;
+        }
+
+        .ai-thinking {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            color: #ffffff;
+            font-style: italic;
+        }
+
+        .thinking-dots {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .thinking-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            animation: thinking-pulse 1.5s infinite;
+        }
+
+        .thinking-dot:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .thinking-dot:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        @keyframes thinking-pulse {
+            0%, 80%, 100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+            40% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .ai-reasoning-block {
+            background-color: #111111;
+            border: 1px solid #666666;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+
+        .ai-reasoning-block.collapsed .reasoning-content {
+            display: none;
+        }
+
+        .ai-reasoning-block.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .reasoning-header {
+            padding: 0.5rem;
+            background-color: #222222;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .reasoning-content {
+            padding: 0.5rem;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .code-block-wrapper {
+            background-color: #111111;
+            border: 1px solid #666666;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+
+        .code-block-header {
+            padding: 0.5rem;
+            background-color: #222222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .code-block-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .code-block-btn {
+            padding: 0.25rem 0.5rem;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 4px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .code-block-btn:hover {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .ai-confirmation {
+            background-color: #222222;
+            border: 1px solid #ffffff;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .confirm-question {
+            font-weight: bold;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .confirm-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ffffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .confirm-btn.accept {
+            background-color: #00aa00;
+            color: #ffffff;
+        }
+
+        .confirm-btn.reject {
+            background-color: #aa0000;
+            color: #ffffff;
+        }
+
+        .diff-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .diff-modal {
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 6px;
+            width: 90%;
+            height: 90%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .diff-header {
+            padding: 0.5rem;
+            border-bottom: 1px solid #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .diff-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .diff-accept-btn {
+            padding: 0.5rem 1rem;
+            background-color: #00aa00;
+            border: 1px solid #ffffff;
+            border-radius: 4px;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .diff-reject-btn {
+            padding: 0.5rem 1rem;
+            background-color: #aa0000;
+            border: 1px solid #ffffff;
+            border-radius: 4px;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .tool-card {
+            background-color: #111111;
+            border: 1px solid #666666;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+
+        .tool-card-header {
+            padding: 0.5rem;
+            background-color: #222222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .tool-card-body {
+            padding: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tool-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .attachment-menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 6px;
+            padding: 1rem;
+            z-index: 1001;
+            min-width: 200px;
+        }
+
+        .attachment-menu-header {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .attachment-menu-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .attachment-menu-options button {
+            padding: 0.5rem;
+            background-color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 4px;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .attachment-menu-options button:hover {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        .attachment-menu-close {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
         .ai-action-select {
             background-color: #000000;
             color: #ffffff;
@@ -505,7 +846,6 @@
         .ai-action-select:focus {
             outline: none;
             border-color: #40e0d0;
-        }
         }
 
         .ai-message {
@@ -1447,9 +1787,10 @@
             </div>
             <div id="aiContent" class="ai-content"></div>
             <div class="ai-input-area">
-                <div id="imageAttachments"></div>
+                <div id="attachmentPills" class="attachment-pills"></div>
                 <div class="ai-input-controls">
                     <input type="file" id="imageUpload" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                    <button onclick="attachFile()" class="attach-btn">📎</button>
                     <textarea 
                         id="aiPrompt" 
                         placeholder="Ask about your code or upload an image..."
@@ -1880,7 +2221,7 @@
         }
 
         function displayImageAttachment(imageData) {
-            const attachmentsContainer = document.getElementById('imageAttachments');
+            const attachmentsContainer = document.getElementById('attachmentPills');
             
             const attachmentDiv = document.createElement('div');
             attachmentDiv.className = 'image-attachment';
@@ -1898,7 +2239,7 @@
 
         function removeImageAttachment(index) {
             attachedImages.splice(index, 1);
-            const attachmentsContainer = document.getElementById('imageAttachments');
+            const attachmentsContainer = document.getElementById('attachmentPills');
             attachmentsContainer.innerHTML = '';
             
             // Re-render all attachments with updated indices
@@ -2342,7 +2683,7 @@
                 document.getElementById('aiPrompt').value = '';
                 const currentImages = [...attachedImages]; // Copy current images
                 attachedImages = [];
-                document.getElementById('imageAttachments').innerHTML = '';
+                document.getElementById('attachmentPills').innerHTML = '';
 
                 // Create and display the message immediately
                 const messageDiv = document.createElement('div');
@@ -3242,6 +3583,7 @@
         }
     </script>
 
+    <script src="js/ai-streaming.js"></script>
     <script src="js/context-attachments.js"></script>
 </body>
 </html>

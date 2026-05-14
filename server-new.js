@@ -97,6 +97,9 @@ app.use('/serve', express.static('.'));
 // ROUTES
 // ============================================================================
 
+// Suppress favicon 404
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Main route - serve Grok IDE
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'GrokIDE.html'));
