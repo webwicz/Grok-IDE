@@ -47,11 +47,11 @@ const config = {
         csp: {
             directives: {
                 "default-src": ["'self'"],
-                "style-src": ["'self'", "'unsafe-inline'"],
-                "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+                "style-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+                "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com"],
                 "img-src": ["'self'", 'data:', 'https:', 'blob:'],
                 "connect-src": ["'self'", 'https://api.x.ai'],
-                "font-src": ["'self'", 'data:'],
+                "font-src": ["'self'", 'data:', "https://cdnjs.cloudflare.com"],
                 "object-src": ["'none'"],
                 "media-src": ["'self'"],
                 "frame-src": ["'none'"]
