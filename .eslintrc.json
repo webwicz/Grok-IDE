@@ -1,0 +1,49 @@
+{
+  "env": {
+    "node": true,
+    "browser": true,
+    "es2022": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-undef": "error",
+    "no-unused-vars": ["warn", { "args": "none", "ignoreRestSiblings": true }],
+    "no-unreachable": "error",
+    "no-duplicate-case": "error",
+    "no-dupe-keys": "error",
+    "no-dupe-class-members": "error",
+    "no-redeclare": "error",
+    "no-extra-semi": "warn",
+    "use-isnan": "error",
+    "valid-typeof": "error",
+    "no-constant-condition": "warn",
+    "no-debugger": "warn",
+    "eqeqeq": ["warn", "always", { "null": "ignore" }],
+    "no-eval": "error",
+    "no-implied-eval": "error"
+  },
+  "globals": {
+    "require": "readonly",
+    "monaco": "readonly",
+    "marked": "readonly",
+    "Terminal": "readonly",
+    "FitAddon": "readonly",
+    "WebLinksAddon": "readonly",
+    "ThemeManager": "readonly",
+    "SettingsManager": "readonly",
+    "NotificationSystem": "readonly",
+    "CommandPalette": "readonly",
+    "KeyboardHandler": "readonly",
+    "TerminalManager": "readonly",
+    "MarkdownPreview": "readonly",
+    "JSONFormatter": "readonly",
+    "CodeSnippets": "readonly",
+    "DeveloperConsole": "readonly",
+    "APITester": "readonly",
+    "TaskManager": "readonly",
+    "ProjectTemplates": "readonly"
+  }
+}

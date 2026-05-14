@@ -673,6 +673,27 @@
         }
 
         /**
+         * Setup keyboard/input handlers for the AI input textarea
+         */
+        setupInputHandlers() {
+            const input = document.getElementById('ai-input');
+            if (!input) return;
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            });
+
+            // Auto-resize textarea as content grows
+            input.addEventListener('input', () => {
+                input.style.height = 'auto';
+                input.style.height = `${Math.min(input.scrollHeight, 200)}px`;
+            });
+        }
+
+        /**
          * Generate a unique session ID
          */
         _generateSessionId() {

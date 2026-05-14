@@ -4,6 +4,7 @@ const chatController = require('../controllers/chatController');
 const streamingController = require('../controllers/streamingController');
 const gitController = require('../controllers/gitController');
 const searchController = require('../controllers/searchController');
+const memoryService = require('../services/memoryService');
 const { validateRequest, validateApiKey, aiRateLimiter } = require('../middleware/security');
 const {
     completionSchema,
@@ -89,6 +90,45 @@ router.post('/completion-stream',
     validateApiKey,
     streamingController.streamCompletion
 );
+
+// Phase 3: Tool Confirmation Endpoint
+router.post('/tool-confirm', (req, res) => {
+    const { sessionId, toolCallId, approved } = req.body;
+    // This would resolve the pending tool call
+    // For now, just acknowledge
+    res.json({ status: 'acknowledged', approved });
+});
+
+// Phase 4: Memory Endpoints
+router.get('/memory', async (req, res) => {
+    try {
+        const content = await memoryService.getMemoryFile('MEMORY.md');
+        res.json({ content });
+    } catch (error) {
+        res.json({ content: '' });
+    }
+});
+
+router.put('/memory', async (req, res) => {
+    const { content } = req.body;
+    await memoryService.saveMemoryFile('MEMORY.md', content);
+    res.json({ status: 'saved' });
+});
+
+router.get('/memory/dreams', async (req, res) => {
+    try {
+        const content = await memoryService.getMemoryFile('DREAMS.md');
+        res.json({ diary: content, status: 'idle' });
+    } catch (error) {
+        res.json({ diary: '', status: 'idle' });
+    }
+});
+
+router.post('/dreaming/trigger', async (req, res) => {
+    const dreamingService = require('../services/dreamingService');
+    dreamingService.triggerManualDream();
+    res.json({ status: 'triggered' });
+});
 
 // Phase 3: Git Endpoints
 router.get('/git/status', gitController.getStatus);
