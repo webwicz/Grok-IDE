@@ -42,7 +42,12 @@
             const sendBtn = document.getElementById('ai-send-btn');
             sendBtn?.addEventListener('click', () => this.sendMessage());
         }
-
+        /**
+         * Send prompt (global function for HTML onclick)
+         */
+        sendPrompt() {
+            this.sendMessage();
+        }
         /**
          * Show thinking indicator
          */
@@ -83,7 +88,7 @@
          */
         setMode(mode) {
             this.currentMode = mode;
-            const input = document.getElementById('ai-input');
+            const input = document.getElementById('aiPrompt');
             if (input) {
                 const placeholders = {
                     'code': 'Ask me to write, review, or explain code...',
@@ -99,7 +104,7 @@
          * Send message to AI
          */
         async sendMessage() {
-            const input = document.getElementById('ai-input');
+            const input = document.getElementById('aiPrompt');
             const message = input.value.trim();
 
             if (!message || this.isStreaming) return;
@@ -201,6 +206,12 @@
                                 } else if (parsed.type === 'reasoning') {
                                     reasoningContent += parsed.content;
                                     this.updateStreamingMessage(messageDiv, fullResponse, reasoningContent);
+                                } else if (parsed.type === 'tool_call') {
+                                    this.showToolCard(parsed.tool, 'running');
+                                } else if (parsed.type === 'tool_result') {
+                                    this.updateToolCard(parsed.name, parsed.result || parsed.error, 'completed');
+                                } else if (parsed.type === 'tool_confirm') {
+                                    this.showToolConfirmation(parsed.name, parsed.args, parsed.callId);
                                 }
                             } catch (e) {
                                 // Ignore parse errors
@@ -313,12 +324,12 @@
                 // Add reasoning block if present
                 if (reasoning) {
                     html += `
-                        <div class="ai-reasoning-block collapsed">
+                        <div class="ai-reasoning-block">
                             <div class="reasoning-header" onclick="this.parentElement.classList.toggle('collapsed')">
-                                <span class="reasoning-toggle">▶</span>
-                                <span class="reasoning-label">Reasoning</span>
+                                <span>Reasoning</span>
+                                <span class="toggle-icon">▼</span>
                             </div>
-                            <div class="reasoning-content">${this.formatMessage(reasoning)}</div>
+                            <div class="reasoning-content">${this.escapeHtml(reasoning)}</div>
                         </div>
                     `;
                 }
@@ -386,16 +397,16 @@
                             <span class="code-language">${language}</span>
                             ${filename ? `<span class="code-filename">${filename}</span>` : ''}
                             <div class="code-block-actions">
-                                <button class="code-action-btn" onclick="window.aiStreaming.copyCode(this)" title="Copy code">
+                                <button class="code-block-btn" onclick="window.aiStreaming.copyCode(this)" title="Copy code">
                                     📋
                                 </button>
-                                <button class="code-action-btn" onclick="window.aiStreaming.applyToEditor(this)" title="Apply to editor">
+                                <button class="code-block-btn" onclick="window.aiStreaming.applyToEditor(this)" title="Apply to editor">
                                     ↓
                                 </button>
-                                ${filename ? `<button class="code-action-btn" onclick="window.aiStreaming.viewDiff(this)" title="View diff">
+                                ${filename ? `<button class="code-block-btn" onclick="window.aiStreaming.viewDiff(this)" title="View diff">
                                     🔍
                                 </button>` : ''}
-                                <button class="code-action-btn" onclick="window.aiStreaming.createFile(this)" title="Create file">
+                                <button class="code-block-btn" onclick="window.aiStreaming.createFile(this)" title="Create file">
                                     📄
                                 </button>
                             </div>
@@ -448,9 +459,11 @@
             const filename = codeBlock.dataset.filename;
             const newCode = codeBlock.textContent;
 
-            if (window.monacoEditor && filename) {
-                // This will be implemented in Phase 2
-                this.showNotification('Diff view will be implemented in Phase 2', 'info');
+            if (window.monacoEditor && filename && window.monacoEditor.showDiff) {
+                const originalContent = window.monacoEditor.getValue();
+                window.monacoEditor.showDiff(originalContent, newCode, filename);
+            } else {
+                this.showNotification('Diff view requires Monaco editor and filename', 'info');
             }
         }
 
@@ -530,6 +543,66 @@
         }
 
         /**
+         * Show tool card
+         */
+        showToolCard(toolName, status) {
+            const aiContent = document.getElementById('ai-content');
+            if (!aiContent) return;
+
+            const toolCard = document.createElement('div');
+            toolCard.className = 'tool-card';
+            toolCard.id = `tool-${Date.now()}`;
+            toolCard.innerHTML = `
+                <div class="tool-card-header">
+                    <span class="tool-icon">🔧</span>
+                    <span class="tool-name">${toolName}</span>
+                    <span class="tool-status">${status}</span>
+                </div>
+                <div class="tool-card-body">
+                    <div class="tool-spinner"></div>
+                    <span>Executing...</span>
+                </div>
+            `;
+
+            aiContent.appendChild(toolCard);
+            aiContent.scrollTop = aiContent.scrollHeight;
+        }
+
+        /**
+         * Update tool card
+         */
+        updateToolCard(toolName, result, status) {
+            const cards = document.querySelectorAll('.tool-card');
+            const card = Array.from(cards).find(c => c.querySelector('.tool-name').textContent === toolName);
+            if (card) {
+                card.querySelector('.tool-status').textContent = status;
+                card.querySelector('.tool-card-body').innerHTML = `<pre>${result}</pre>`;
+            }
+        }
+
+        /**
+         * Show tool confirmation
+         */
+        showToolConfirmation(toolName, args, callId) {
+            const question = `Allow AI to execute: ${toolName} with args: ${JSON.stringify(args)}?`;
+            this.addConfirmationMessage(question, () => {
+                // Accept
+                fetch('/api/tool-confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: this.sessionId, toolCallId: callId, approved: true })
+                });
+            }, () => {
+                // Reject
+                fetch('/api/tool-confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: this.sessionId, toolCallId: callId, approved: false })
+                });
+            });
+        }
+
+        /**
          * Copy message content
          */
         copyMessage(button) {
@@ -597,6 +670,22 @@
             if (this.abortController) {
                 this.abortController.abort();
             }
+        }
+
+        /**
+         * Generate a unique session ID
+         */
+        _generateSessionId() {
+            return `sess_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        }
+
+        /**
+         * Escape HTML
+         */
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     }
 
