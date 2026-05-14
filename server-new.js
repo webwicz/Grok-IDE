@@ -78,6 +78,18 @@ app.use('/api', security.rateLimiter);
 // Serve static files from public directory
 app.use(express.static('public'));
 
+// Chrome DevTools endpoint for debugging
+app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
+    res.json({
+        "version": "1.0",
+        "name": "Grok IDE",
+        "description": "A Metal Gear Solid-inspired IDE with xAI Grok integration",
+        "start_url": "/",
+        "display": "standalone",
+        "icons": []
+    });
+});
+
 // Serve files from current working directory for terminal browser access
 app.use('/serve', express.static('.'));
 
