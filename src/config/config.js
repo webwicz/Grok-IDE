@@ -49,6 +49,7 @@ const config = {
                 "default-src": ["'self'"],
                 "style-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
                 "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com"],
+                "script-src-attr": ["'unsafe-inline'"],
                 "img-src": ["'self'", 'data:', 'https:', 'blob:'],
                 "connect-src": ["'self'", 'https://api.x.ai', 'https://cdnjs.cloudflare.com'],
                 "worker-src": ["'self'", 'blob:'],

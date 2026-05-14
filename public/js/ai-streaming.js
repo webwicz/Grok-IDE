@@ -366,16 +366,20 @@
         addMessageActions(messageDiv, content) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'message-actions';
-            actionsDiv.innerHTML = `
-                <button class="btn btn-xs" onclick="window.aiStreaming.copyMessage(this)">
-                    📋 Copy
-                </button>
-                <button class="btn btn-xs" onclick="window.aiStreaming.insertToEditor(this)">
-                    ↓ Insert to Editor
-                </button>
-            `;
-
             actionsDiv.dataset.content = content;
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'btn btn-xs';
+            copyBtn.dataset.action = 'copy-message';
+            copyBtn.textContent = '📋 Copy';
+
+            const insertBtn = document.createElement('button');
+            insertBtn.className = 'btn btn-xs';
+            insertBtn.dataset.action = 'insert-to-editor';
+            insertBtn.textContent = '↓ Insert to Editor';
+
+            actionsDiv.appendChild(copyBtn);
+            actionsDiv.appendChild(insertBtn);
             messageDiv.appendChild(actionsDiv);
         }
 
@@ -398,16 +402,16 @@
                             <span class="code-language">${language}</span>
                             ${filename ? `<span class="code-filename">${filename}</span>` : ''}
                             <div class="code-block-actions">
-                                <button class="code-block-btn" onclick="window.aiStreaming.copyCode(this)" title="Copy code">
+                                <button class="code-block-btn" data-action="copy-code" title="Copy code">
                                     📋
                                 </button>
-                                <button class="code-block-btn" onclick="window.aiStreaming.applyToEditor(this)" title="Apply to editor">
+                                <button class="code-block-btn" data-action="apply-to-editor" title="Apply to editor">
                                     ↓
                                 </button>
-                                ${filename ? `<button class="code-block-btn" onclick="window.aiStreaming.viewDiff(this)" title="View diff">
+                                ${filename ? `<button class="code-block-btn" data-action="view-diff" title="View diff">
                                     🔍
                                 </button>` : ''}
-                                <button class="code-block-btn" onclick="window.aiStreaming.createFile(this)" title="Create file">
+                                <button class="code-block-btn" data-action="create-file" title="Create file">
                                     📄
                                 </button>
                             </div>
@@ -698,6 +702,22 @@
                 input.style.height = 'auto';
                 input.style.height = `${Math.min(input.scrollHeight, 200)}px`;
             });
+
+            // Delegated handler for all data-action buttons (avoids inline onclick CSP issues)
+            const aiContent = document.getElementById('ai-content');
+            if (aiContent) {
+                aiContent.addEventListener('click', (e) => {
+                    const btn = e.target.closest('[data-action]');
+                    if (!btn) return;
+                    const action = btn.dataset.action;
+                    if (action === 'copy-message') this.copyMessage(btn);
+                    else if (action === 'insert-to-editor') this.insertToEditor(btn);
+                    else if (action === 'copy-code') this.copyCode(btn);
+                    else if (action === 'apply-to-editor') this.applyToEditor(btn);
+                    else if (action === 'view-diff') this.viewDiff(btn);
+                    else if (action === 'create-file') this.createFile(btn);
+                });
+            }
         }
 
         /**
