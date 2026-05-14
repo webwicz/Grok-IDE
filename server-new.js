@@ -271,6 +271,11 @@ async function startServer() {
         await databaseService.initialize();
         logger.info('Database initialized successfully');
 
+        // Initialize dreaming service
+        const DreamingService = require('./src/services/dreamingService');
+        const dreamingService = new DreamingService();
+        logger.info('Dreaming service initialized');
+
         // Start Express server
         const server = app.listen(config.server.port, () => {
             logger.info(`
