@@ -6,6 +6,7 @@
 const aiService = require('../services/aiService');
 const databaseService = require('../services/databaseService');
 const logger = require('../utils/logger');
+const config = require('../config/config');
 
 /**
  * Stream AI completion
@@ -58,7 +59,7 @@ exports.streamCompletion = async (req, res) => {
         let lastResponseId = null;
         await aiService.streamCompletion(
             messages,
-            model || 'grok-4.3',
+            model || config.xai.models.chat,
             (chunk) => {
                 if (chunk.type === 'content') {
                     res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`);
