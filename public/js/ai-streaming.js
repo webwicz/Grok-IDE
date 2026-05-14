@@ -12,7 +12,7 @@
             this.isStreaming = false;
             this.abortController = null;
             this.conversationHistory = [];
-        this.sessionId = this._generateSessionId();
+            this.sessionId = this._generateSessionId();
             this.setupModeButtons();
             this.setupSendButton();
             this.setupInputHandlers();
@@ -671,6 +671,12 @@
                 this.abortController.abort();
             }
         }
+
+        /**
+         * No-op initialize method for compatibility with app-v3 init flow.
+         * All setup is handled in the constructor.
+         */
+        initialize() {}
 
         /**
          * Setup keyboard/input handlers for the AI input textarea
